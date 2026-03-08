@@ -1,0 +1,243 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== ENUMS ====================
+
+enum UserType {
+  ADMIN
+  OPERADOR
+}
+
+enum ContratoStatus {
+  VIGENTE
+  VENCIDO
+}
+
+enum ConsumoStatus {
+  PENDIENTE
+  PAGADO
+  VENCIDO
+}
+
+enum PagoStatus {
+  CONFIRMADO
+}
+
+enum FianzaTipo {
+  BANCARIA
+  EFECTIVO
+  ASEGURADORA
+}
+
+enum MetodoPago {
+  TRANSFERENCIA
+  DEPOSITO
+  CHEQUE
+  EFECTIVO
+}
+
+// ==================== MODELS ====================
+
+model Estacion {
+  id              String   @id @default(cuid())
+  nombre          String
+  num             String   @unique  // EST-0001
+  ciudad          String
+  estado          String
+  razonSocial     String
+  rfc             String
+  domicilio       String   @default("")
+  cp              String   @default("")
+  banco           String   @default("")
+  cuenta          String   @default("")
+  clabe           String   @default("")
+  beneficiario    String   @default("")
+  contactoNombre  String   @default("")
+  contactoTel     String   @default("")
+  contactoEmail   String   @default("")
+  activa          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  usuarios        Usuario[]
+  clientes        Cliente[]
+  contratos       Contrato[]
+  consumos        Consumo[]
+  pagos           Pago[]
+
+  @@map("estaciones")
+}
+
+model Usuario {
+  id           String   @id @default(cuid())
+  nombre       String
+  ap           String
+  email        String   @unique
+  passwordHash String
+  tipo         UserType @default(OPERADOR)
+  rfc          String   @default("")
+  tel          String   @default("")
+  pin          String   @default("")
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // FK
+  estacionId   String?
+  estacion     Estacion? @relation(fields: [estacionId], references: [id])
+
+  // Relations
+  consumosRegistrados  Consumo[] @relation("RegistradoPorConsumo")
+  pagosRegistrados     Pago[]    @relation("RegistradoPorPago")
+  refreshTokens        RefreshToken[]
+  auditLogs            AuditLog[]
+
+  @@map("usuarios")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  usuario   Usuario  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+model Cliente {
+  id                 String   @id @default(cuid())
+  razonSocial        String
+  rfc                String
+  domicilioFiscal    String   @default("")
+  representanteLegal String   @default("")
+  telefono           String   @default("")
+  email              String   @default("")
+  activo             Boolean  @default(true)
+  notas              String   @default("")
+  fechaRegistro      DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // FK
+  estacionId         String
+  estacion           Estacion @relation(fields: [estacionId], references: [id])
+
+  // Relations
+  contratos          Contrato[]
+  consumos           Consumo[]
+  pagos              Pago[]
+
+  @@map("clientes")
+}
+
+model Contrato {
+  id                String          @id @default(cuid())
+  numero            String          @unique  // CTR-0001-2026-001
+  lineaCredito      Int             // centavos
+  fechaInicio       DateTime
+  fechaVencimiento  DateTime
+  fianzaMonto       Int             @default(0)  // centavos
+  fianzaTipo        FianzaTipo      @default(BANCARIA)
+  condicionesPago   Int             @default(30)  // dias
+  tasaMoratoria     Float           @default(2.5)
+  docContrato       String          @default("")
+  docPagare         String          @default("")
+  docFianza         String          @default("")
+  status            ContratoStatus  @default(VIGENTE)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // FK
+  estacionId        String
+  estacion          Estacion @relation(fields: [estacionId], references: [id])
+  clienteId         String
+  cliente           Cliente  @relation(fields: [clienteId], references: [id])
+
+  // Relations
+  consumos          Consumo[]
+  pagos             Pago[]
+
+  @@map("contratos")
+}
+
+model Consumo {
+  id             String        @id @default(cuid())
+  monto          Int           // centavos
+  descripcion    String        @default("Consumo combustible")
+  numFactura     String        @default("")
+  fechaConsumo   DateTime
+  status         ConsumoStatus @default(PENDIENTE)
+  ref            String        @unique  // CONS-20260215-ABCD1234
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // FK
+  estacionId     String
+  estacion       Estacion @relation(fields: [estacionId], references: [id])
+  clienteId      String
+  cliente        Cliente  @relation(fields: [clienteId], references: [id])
+  contratoId     String
+  contrato       Contrato @relation(fields: [contratoId], references: [id])
+  registradoPor  String
+  registrador    Usuario  @relation("RegistradoPorConsumo", fields: [registradoPor], references: [id])
+
+  @@map("consumos")
+}
+
+model Pago {
+  id             String     @id @default(cuid())
+  monto          Int        // centavos
+  metodo         MetodoPago @default(TRANSFERENCIA)
+  refBancaria    String     @default("")
+  fechaDeposito  DateTime
+  status         PagoStatus @default(CONFIRMADO)
+  comprobante    String     @default("")
+  nota           String     @default("")
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  // FK
+  estacionId     String
+  estacion       Estacion @relation(fields: [estacionId], references: [id])
+  clienteId      String
+  cliente        Cliente  @relation(fields: [clienteId], references: [id])
+  contratoId     String
+  contrato       Contrato @relation(fields: [contratoId], references: [id])
+  registradoPor  String
+  registrador    Usuario  @relation("RegistradoPorPago", fields: [registradoPor], references: [id])
+
+  @@map("pagos")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tipo      String   // login, logout, create, update, delete, etc.
+  desc      String
+  userName  String   @default("")
+  timestamp DateTime @default(now())
+
+  // FK (nullable - system actions may not have a user)
+  userId    String?
+  usuario   Usuario? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model Config {
+  id                    String @id @default("singleton")
+  diasCreditoDefault    Int    @default(30)
+  tasaMoratoriaDefault  Float  @default(2.5)
+  alertaCartera         Int    @default(80)
+  alertaMoroso          Int    @default(5)
+  maxLineaCredito       Int    @default(50000000)  // centavos
+
+  @@map("config")
+}
