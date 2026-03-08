@@ -3,6 +3,6 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "npx prisma db push 2>&1 && node prisma/seed.js 2>&1 && node src/index.js"
+startCommand = "npx prisma db push 2>&1 && (node prisma/seed.js 2>&1 || echo 'Seed failed, continuing...') && node src/index.js"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
