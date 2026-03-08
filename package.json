@@ -30,7 +30,7 @@
   },
   "keywords": ["gap", "credito", "estaciones"],
   "license": "ISC",
-"engines": {
-  "node": ">=22.12.0"
+  "engines": {
+    "node": ">=22.12.0"
+  }
 }
-
