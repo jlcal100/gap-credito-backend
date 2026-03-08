@@ -29,5 +29,8 @@
     "prisma": "^7.0.0"
   },
   "keywords": ["gap", "credito", "estaciones"],
-  "license": "ISC"
+  "license": "ISC",
+"engines": {
+  "node": ">=22.12.0"
 }
+
