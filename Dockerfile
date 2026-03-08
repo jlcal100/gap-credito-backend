@@ -6,17 +6,14 @@ COPY package*.json ./
 COPY prisma.config.ts ./
 COPY prisma ./prisma/
 
-# Provide a dummy DATABASE_URL for prisma generate (only needs it to parse, not connect)
-ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+# Dummy DATABASE_URL only for prisma generate (does not connect, only parses)
+ARG DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 
 RUN npm ci
 
 COPY . .
 
-RUN npx prisma generate
-
-# Remove dummy - real URL comes from Railway env vars at runtime
-ENV DATABASE_URL=""
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
 
 EXPOSE 3000
 
