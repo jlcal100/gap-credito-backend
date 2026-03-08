@@ -1,13 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL,
-    },
-  },
-});
+const prisma = new PrismaClient();
 
 const BANCOS = ['BBVA', 'Banorte', 'Santander', 'HSBC', 'Scotiabank', 'Citibanamex', 'Banco Azteca', 'BanRegio', 'Inbursa', 'Afirme'];
 
