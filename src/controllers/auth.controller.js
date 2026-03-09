@@ -10,6 +10,7 @@ const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_DURATION_MS = 5 * 60 * 1000; // 5 minutos
 const CODE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutos
 const MAX_CODE_ATTEMPTS = 3;
+const SKIP_2FA_WINDOW_MS = 2 * 60 * 60 * 1000; // 2 horas
 
 // In-memory rate limiter (por email)
 const loginAttempts = new Map();
@@ -84,9 +85,39 @@ async function login(req, res, next) {
       return res.status(401).json({ error: 'Credenciales invalidas' });
     }
 
-    // Password correcto - generar y enviar codigo
+    // Password correcto
     loginAttempts.delete(emailLower);
 
+    // Verificar si ya paso 2FA en las ultimas 2 horas
+    const recentVerification = await prisma.verificationCode.findFirst({
+      where: {
+        userId: user.id,
+        used: true,
+        createdAt: { gt: new Date(Date.now() - SKIP_2FA_WINDOW_MS) },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (recentVerification) {
+      // Tiene verificacion reciente - login directo sin 2FA
+      const accessToken = generateAccessToken(user);
+      const refreshToken = generateRefreshToken(user);
+      await prisma.refreshToken.create({
+        data: { token: refreshToken, userId: user.id, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
+      });
+      await addAudit('login', `Login directo (2FA reciente): ${user.nombre} ${user.ap}`, user, meta);
+      return res.json({
+        accessToken,
+        refreshToken,
+        user: {
+          id: user.id, nombre: user.nombre, ap: user.ap, email: user.email,
+          tipo: user.tipo, estacionId: user.estacionId,
+          estacion: user.estacion ? { id: user.estacion.id, nombre: user.estacion.nombre, num: user.estacion.num } : null,
+        },
+      });
+    }
+
+    // No tiene verificacion reciente - enviar codigo
     // Invalidar codigos anteriores
     await prisma.verificationCode.updateMany({
       where: { userId: user.id, used: false },
