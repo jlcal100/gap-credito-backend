@@ -17,18 +17,26 @@
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
-    "express": "^4.21.0",
-    "cors": "^2.8.5",
-    "helmet": "^8.0.0",
-    "morgan": "^1.10.0",
     "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "express-rate-limit": "^7.4.0",
+    "express-validator": "^7.2.0",
+    "helmet": "^8.0.0",
+    "hpp": "^0.2.3",
     "jsonwebtoken": "^9.0.2",
-    "dotenv": "^16.4.5"
+    "morgan": "^1.10.0",
+    "resend": "^4.8.0"
   },
   "devDependencies": {
     "prisma": "^6.0.0"
   },
-  "keywords": ["gap", "credito", "estaciones"],
+  "keywords": [
+    "gap",
+    "credito",
+    "estaciones"
+  ],
   "license": "ISC",
   "engines": {
     "node": ">=22.12.0"

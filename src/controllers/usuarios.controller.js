@@ -39,10 +39,13 @@ async function create(req, res, next) {
     if (!email) return res.status(400).json({ error: 'Email requerido' });
     if (!password) return res.status(400).json({ error: 'Contraseña requerida' });
 
-    // Validate password policy
-    if (password.length < 8) return res.status(400).json({ error: 'Minimo 8 caracteres' });
+    // Validate password policy (reforzada)
+    if (password.length < 10) return res.status(400).json({ error: 'Minimo 10 caracteres' });
     if (!/[A-Z]/.test(password)) return res.status(400).json({ error: 'Requiere al menos 1 mayuscula' });
+    if (!/[a-z]/.test(password)) return res.status(400).json({ error: 'Requiere al menos 1 minuscula' });
     if (!/[0-9]/.test(password)) return res.status(400).json({ error: 'Requiere al menos 1 numero' });
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"|,.<>?]/.test(password)) return res.status(400).json({ error: 'Requiere al menos 1 caracter especial (!@#$%...)' });
+    if (/(.)\1{2,}/.test(password)) return res.status(400).json({ error: 'No se permiten 3+ caracteres repetidos consecutivos' });
 
     if (tipo === 'OPERADOR' && !estacionId) {
       return res.status(400).json({ error: 'Operadores requieren estacionId' });
@@ -77,12 +80,15 @@ async function update(req, res, next) {
     const { id } = req.params;
     const { password, passwordHash: _, ...data } = req.body;
 
-    // Si envian nueva contraseña
+    // Si envian nueva contraseña (politica reforzada)
     if (password) {
-      if (password.length < 8) return res.status(400).json({ error: 'Minimo 8 caracteres' });
+      if (password.length < 10) return res.status(400).json({ error: 'Minimo 10 caracteres' });
       if (!/[A-Z]/.test(password)) return res.status(400).json({ error: 'Requiere 1 mayuscula' });
+      if (!/[a-z]/.test(password)) return res.status(400).json({ error: 'Requiere 1 minuscula' });
       if (!/[0-9]/.test(password)) return res.status(400).json({ error: 'Requiere 1 numero' });
-      data.passwordHash = await bcrypt.hash(password, 12);
+      if (!/[!@#$%^&*()_+\-=\[\]{};':"|,.<>?]/.test(password)) return res.status(400).json({ error: 'Requiere 1 caracter especial' });
+      if (/(.)\1{2,}/.test(password)) return res.status(400).json({ error: 'No se permiten 3+ caracteres repetidos' });
+      data.passwordHash = await bcrypt.hash(password, 14); // Incrementado bcrypt rounds
     }
 
     if (data.email) data.email = data.email.toLowerCase().trim();

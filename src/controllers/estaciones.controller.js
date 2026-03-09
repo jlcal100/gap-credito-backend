@@ -2,6 +2,25 @@ const prisma = require('../config/database');
 const { addAudit } = require('../utils/audit');
 const { getEstacionFilter } = require('../middleware/roleGuard');
 const { generateEstacionNum } = require('../utils/helpers');
+const { encrypt, decrypt, maskAccount, maskClabe } = require('../utils/encryption');
+
+// Campos sensibles que se encriptan
+const SENSITIVE_FIELDS = ['cuenta', 'clabe'];
+
+function encryptEstacion(data) {
+  const encrypted = { ...data };
+  if (encrypted.cuenta) encrypted.cuenta = encrypt(encrypted.cuenta);
+  if (encrypted.clabe) encrypted.clabe = encrypt(encrypted.clabe);
+  return encrypted;
+}
+
+function decryptEstacion(estacion) {
+  if (!estacion) return estacion;
+  const decrypted = { ...estacion };
+  if (decrypted.cuenta) decrypted.cuenta = decrypt(decrypted.cuenta);
+  if (decrypted.clabe) decrypted.clabe = decrypt(decrypted.clabe);
+  return decrypted;
+}
 
 async function list(req, res, next) {
   try {
@@ -10,7 +29,8 @@ async function list(req, res, next) {
       where: filter.estacionId ? { id: filter.estacionId } : {},
       orderBy: { num: 'asc' },
     });
-    res.json(estaciones);
+    // Desencriptar para el frontend
+    res.json(estaciones.map(decryptEstacion));
   } catch (err) { next(err); }
 }
 
@@ -23,7 +43,7 @@ async function getById(req, res, next) {
       },
     });
     if (!estacion) return res.status(404).json({ error: 'Estacion no encontrada' });
-    res.json(estacion);
+    res.json(decryptEstacion(estacion));
   } catch (err) { next(err); }
 }
 
@@ -32,12 +52,13 @@ async function create(req, res, next) {
     const count = await prisma.estacion.count();
     const num = generateEstacionNum(count + 1);
 
-    const estacion = await prisma.estacion.create({
-      data: { ...req.body, num },
-    });
+    // Encriptar datos sensibles antes de guardar
+    const data = encryptEstacion({ ...req.body, num });
+
+    const estacion = await prisma.estacion.create({ data });
 
     await addAudit('create', `Estacion creada: ${estacion.nombre} (${num})`, req.user);
-    res.status(201).json(estacion);
+    res.status(201).json(decryptEstacion(estacion));
   } catch (err) { next(err); }
 }
 
@@ -45,7 +66,10 @@ async function update(req, res, next) {
   try {
     const { id } = req.params;
     // No permitir cambiar el num
-    const { num, ...data } = req.body;
+    const { num, ...rawData } = req.body;
+
+    // Encriptar datos sensibles
+    const data = encryptEstacion(rawData);
 
     const estacion = await prisma.estacion.update({
       where: { id },
@@ -53,7 +77,7 @@ async function update(req, res, next) {
     });
 
     await addAudit('update', `Estacion actualizada: ${estacion.nombre}`, req.user);
-    res.json(estacion);
+    res.json(decryptEstacion(estacion));
   } catch (err) { next(err); }
 }
 

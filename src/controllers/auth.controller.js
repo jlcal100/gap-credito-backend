@@ -2,11 +2,14 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../config/database');
 const { addAudit } = require('../utils/audit');
+const { generateCode, sendVerificationCode } = require('../utils/email');
 
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY = '7d';
-const MAX_LOGIN_ATTEMPTS = 3;
-const LOCK_DURATION_MS = 30 * 1000; // 30 segundos
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCK_DURATION_MS = 5 * 60 * 1000; // 5 minutos
+const CODE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutos
+const MAX_CODE_ATTEMPTS = 3;
 
 // In-memory rate limiter (por email)
 const loginAttempts = new Map();
@@ -35,7 +38,8 @@ function generateRefreshToken(user) {
 }
 
 /**
- * POST /api/auth/login
+ * PASO 1: POST /api/auth/login
+ * Valida email+password, envia codigo de 6 digitos al correo
  */
 async function login(req, res, next) {
   try {
@@ -45,6 +49,7 @@ async function login(req, res, next) {
     }
 
     const emailLower = email.toLowerCase().trim();
+    const meta = { ip: req.ip, userAgent: req.headers['user-agent'] };
 
     // Check rate limit
     const attempts = loginAttempts.get(emailLower);
@@ -67,6 +72,7 @@ async function login(req, res, next) {
 
     if (!user || !user.activo) {
       incrementAttempts(emailLower);
+      await addAudit('security', `Login fallido (usuario no existe/inactivo): ${emailLower}`, null, meta);
       return res.status(401).json({ error: 'Credenciales invalidas' });
     }
 
@@ -74,17 +80,117 @@ async function login(req, res, next) {
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
       incrementAttempts(emailLower);
+      await addAudit('security', `Login fallido (password incorrecto): ${emailLower}`, null, meta);
       return res.status(401).json({ error: 'Credenciales invalidas' });
     }
 
-    // Reset attempts on success
+    // Password correcto - generar y enviar codigo
     loginAttempts.delete(emailLower);
 
-    // Generate tokens
+    // Invalidar codigos anteriores
+    await prisma.verificationCode.updateMany({
+      where: { userId: user.id, used: false },
+      data: { used: true },
+    });
+
+    // Crear nuevo codigo
+    const code = generateCode();
+    await prisma.verificationCode.create({
+      data: {
+        code,
+        email: emailLower,
+        userId: user.id,
+        expiresAt: new Date(Date.now() + CODE_EXPIRY_MS),
+      },
+    });
+
+    // Enviar email
+    const emailResult = await sendVerificationCode(emailLower, code, user.nombre);
+
+    await addAudit('login', `Codigo de verificacion enviado a: ${emailLower}`, user, meta);
+
+    res.json({
+      requiresVerification: true,
+      email: emailLower,
+      message: 'Codigo de verificacion enviado al correo',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * PASO 2: POST /api/auth/verify
+ * Recibe email + codigo de 6 digitos, retorna tokens si es correcto
+ */
+async function verify(req, res, next) {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) {
+      return res.status(400).json({ error: 'Email y codigo son requeridos' });
+    }
+
+    const emailLower = email.toLowerCase().trim();
+    const meta = { ip: req.ip, userAgent: req.headers['user-agent'] };
+
+    // Buscar codigo valido
+    const verification = await prisma.verificationCode.findFirst({
+      where: {
+        email: emailLower,
+        used: false,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!verification) {
+      await addAudit('security', `Verificacion fallida (sin codigo valido): ${emailLower}`, null, meta);
+      return res.status(401).json({ error: 'Codigo expirado o invalido. Inicie sesion de nuevo.' });
+    }
+
+    // Verificar intentos maximos
+    if (verification.attempts >= MAX_CODE_ATTEMPTS) {
+      await prisma.verificationCode.update({
+        where: { id: verification.id },
+        data: { used: true },
+      });
+      await addAudit('security', `Verificacion bloqueada (max intentos): ${emailLower}`, null, meta);
+      return res.status(429).json({ error: 'Demasiados intentos fallidos. Inicie sesion de nuevo.' });
+    }
+
+    // Verificar codigo
+    if (verification.code !== code.trim()) {
+      await prisma.verificationCode.update({
+        where: { id: verification.id },
+        data: { attempts: verification.attempts + 1 },
+      });
+      const remaining = MAX_CODE_ATTEMPTS - verification.attempts - 1;
+      await addAudit('security', `Codigo incorrecto para: ${emailLower} (${remaining} intentos restantes)`, null, meta);
+      return res.status(401).json({
+        error: `Codigo incorrecto. ${remaining} intento(s) restante(s).`,
+      });
+    }
+
+    // Codigo correcto - marcar como usado
+    await prisma.verificationCode.update({
+      where: { id: verification.id },
+      data: { used: true },
+    });
+
+    // Obtener usuario
+    const user = await prisma.usuario.findUnique({
+      where: { id: verification.userId },
+      include: { estacion: true },
+    });
+
+    if (!user || !user.activo) {
+      return res.status(401).json({ error: 'Usuario inactivo' });
+    }
+
+    // Generar tokens
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
-    // Store refresh token in DB
     await prisma.refreshToken.create({
       data: {
         token: refreshToken,
@@ -93,8 +199,7 @@ async function login(req, res, next) {
       },
     });
 
-    // Audit
-    await addAudit('login', `Inicio de sesion: ${user.nombre} ${user.ap}`, user);
+    await addAudit('login', `Login exitoso (2FA): ${user.nombre} ${user.ap}`, user, meta);
 
     res.json({
       accessToken,
@@ -128,7 +233,6 @@ async function refresh(req, res, next) {
       return res.status(400).json({ error: 'Refresh token requerido' });
     }
 
-    // Verify token signature
     let decoded;
     try {
       decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
@@ -136,7 +240,6 @@ async function refresh(req, res, next) {
       return res.status(401).json({ error: 'Refresh token invalido o expirado' });
     }
 
-    // Check token exists in DB
     const stored = await prisma.refreshToken.findUnique({
       where: { token: refreshToken },
     });
@@ -144,7 +247,6 @@ async function refresh(req, res, next) {
       return res.status(401).json({ error: 'Refresh token invalido o expirado' });
     }
 
-    // Get user
     const user = await prisma.usuario.findUnique({
       where: { id: decoded.id },
     });
@@ -152,7 +254,6 @@ async function refresh(req, res, next) {
       return res.status(401).json({ error: 'Usuario inactivo' });
     }
 
-    // Rotate: delete old, create new
     await prisma.refreshToken.delete({ where: { id: stored.id } });
 
     const newAccessToken = generateAccessToken(user);
@@ -200,4 +301,4 @@ function incrementAttempts(email) {
   });
 }
 
-module.exports = { login, refresh, logout };
+module.exports = { login, verify, refresh, logout };

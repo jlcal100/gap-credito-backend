@@ -233,6 +233,20 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+model VerificationCode {
+  id        String   @id @default(cuid())
+  code      String   // codigo de 6 digitos
+  email     String
+  userId    String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  attempts  Int      @default(0) // intentos fallidos de verificacion
+  createdAt DateTime @default(now())
+
+  @@index([email, code])
+  @@map("verification_codes")
+}
+
 model Config {
   id                    String @id @default("singleton")
   diasCreditoDefault    Int    @default(30)

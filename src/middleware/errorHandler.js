@@ -1,34 +1,46 @@
 /**
  * Middleware centralizado de manejo de errores
+ * En produccion no expone detalles internos
  */
 function errorHandler(err, req, res, next) {
-  console.error(`[ERROR] ${err.message}`, err.stack);
+  const isProd = process.env.NODE_ENV === 'production';
+
+  // Log completo siempre (para debugging en servidor)
+  console.error(`[ERROR] ${req.method} ${req.path} - ${err.message}`);
+  if (!isProd) console.error(err.stack);
+
+  // Errores de CORS
+  if (err.message === 'Origen no permitido por CORS') {
+    return res.status(403).json({ error: 'Origen no autorizado' });
+  }
 
   // Errores de Prisma
   if (err.code === 'P2002') {
     return res.status(409).json({
       error: 'Registro duplicado',
-      detail: `Ya existe un registro con ese valor unico: ${err.meta?.target?.join(', ')}`,
+      detail: isProd ? undefined : `Valor unico duplicado: ${err.meta?.target?.join(', ')}`,
     });
   }
   if (err.code === 'P2025') {
-    return res.status(404).json({
-      error: 'No encontrado',
-      detail: 'El registro solicitado no existe',
-    });
+    return res.status(404).json({ error: 'Registro no encontrado' });
   }
 
   // Errores de validacion
   if (err.name === 'ValidationError') {
     return res.status(400).json({
       error: 'Error de validacion',
-      detail: err.message,
+      detail: isProd ? undefined : err.message,
     });
   }
 
-  // Error generico
+  // Errores de JSON malformado
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'JSON malformado' });
+  }
+
+  // Error generico - NUNCA exponer stack trace en produccion
   res.status(err.status || 500).json({
-    error: err.message || 'Error interno del servidor',
+    error: isProd ? 'Error interno del servidor' : (err.message || 'Error interno del servidor'),
   });
 }
 
