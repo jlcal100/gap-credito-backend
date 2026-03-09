@@ -19,21 +19,10 @@ app.set('trust proxy', 1);
 
 // ==================== SEGURIDAD: HELMET (Headers) ====================
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:"],
-      connectSrc: ["'self'"],
-      frameSrc: ["'none'"],
-      objectSrc: ["'none'"],
-    },
-  },
+  contentSecurityPolicy: false, // Desactivado: el HTML usa inline handlers (onclick, etc.)
   crossOriginEmbedderPolicy: false,
-  crossOriginOpenerPolicy: true,
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: false,
+  crossOriginResourcePolicy: false,
   hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
   noSniff: true,
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
