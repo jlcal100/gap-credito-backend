@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -21,17 +22,18 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:"],
       connectSrc: ["'self'"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
     },
   },
-  crossOriginEmbedderPolicy: true,
+  crossOriginEmbedderPolicy: false,
   crossOriginOpenerPolicy: true,
-  crossOriginResourcePolicy: { policy: 'same-origin' },
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
   hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
   noSniff: true,
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
@@ -104,10 +106,17 @@ app.use('/api/usuarios', writeLimiter, require('./routes/usuarios.routes'));
 app.use('/api/config', writeLimiter, require('./routes/config.routes'));
 app.use('/api/audit', require('./routes/audit.routes'));
 
+// ==================== FRONTEND ESTATICO ====================
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
 // ==================== 404 ====================
 app.use((req, res) => {
-  res.status(404).json({ error: 'Ruta no encontrada' });
-  // No exponer método y path en producción
+  // Si es request de API, devolver JSON
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Ruta no encontrada' });
+  }
+  // Si no, servir el HTML (SPA)
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
 // ==================== ERROR HANDLER ====================
