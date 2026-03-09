@@ -85,25 +85,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ==================== SETUP TEMPORAL (BORRAR DESPUES) ====================
-app.get('/api/setup', async (req, res) => {
-  try {
-    const { PrismaClient } = require('@prisma/client');
-    const p = new PrismaClient();
-    // Borrar en orden por foreign keys
-    const pagos = await p.pago.deleteMany({});
-    const consumos = await p.consumo.deleteMany({});
-    const contratos = await p.contrato.deleteMany({});
-    const clientes = await p.cliente.deleteMany({});
-    console.log('CLEANUP:', { pagos: pagos.count, consumos: consumos.count, contratos: contratos.count, clientes: clientes.count });
-    await p.$disconnect();
-    res.json({ status: 'ok', deleted: { pagos: pagos.count, consumos: consumos.count, contratos: contratos.count, clientes: clientes.count } });
-  } catch(e) {
-    console.error('SETUP ERROR:', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
 // ==================== RUTAS PUBLICAS (con rate limit extra en login) ====================
 app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth', require('./routes/auth.routes'));
