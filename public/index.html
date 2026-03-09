@@ -1193,9 +1193,26 @@ function showDetCliente(cid){
     h+='</table>';
   }
 
-  h+='<div style="margin-top:16px;text-align:right"><button class="btn btn-gold btn-sm" onclick="closeModal(\'modalDetCliente\');showEdoCta(\''+cid+'\')">Ver Estado de Cuenta</button></div>';
+  h+='<div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center">';
+  if(CU.tipo==='superadmin'||CU.tipo==='admin'){
+    h+='<button class="btn btn-sm" style="background:var(--error);color:#fff" onclick="deleteCliente(\''+cid+'\')">Eliminar Cliente</button>';
+  } else { h+='<div></div>'; }
+  h+='<button class="btn btn-gold btn-sm" onclick="closeModal(\'modalDetCliente\');showEdoCta(\''+cid+'\')">Ver Estado de Cuenta</button>';
+  h+='</div>';
   $('modalDetClienteBox').innerHTML=h;
   openModal('modalDetCliente');
+}
+
+async function deleteCliente(cid){
+  const c=D.clientes.find(x=>x.id===cid);if(!c)return;
+  if(!confirm('¿Eliminar al cliente "'+c.razonSocial+'" y todos sus contratos, consumos y pagos? Esta acción no se puede deshacer.'))return;
+  try{
+    await api('/api/clientes/'+cid,{method:'DELETE'});
+    toast('Cliente eliminado: '+c.razonSocial);
+    closeModal('modalDetCliente');
+    await loadFromAPI();
+    rClientes();
+  }catch(e){toast('Error: '+e.message,'err');}
 }
 
 function showEdoCta(cid){

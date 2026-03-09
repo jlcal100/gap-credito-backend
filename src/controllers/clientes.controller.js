@@ -189,4 +189,29 @@ async function estadoCuentaCsv(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { list, getById, create, update, estadoCuenta, estadoCuentaCsv };
+/**
+ * DELETE /api/clientes/:id
+ * Solo ADMIN/SUPERADMIN - elimina cliente y todos sus registros relacionados
+ */
+async function remove(req, res, next) {
+  try {
+    const { id } = req.params;
+    if (req.user.tipo !== 'ADMIN' && req.user.tipo !== 'SUPERADMIN') {
+      return res.status(403).json({ error: 'Solo administradores pueden eliminar clientes' });
+    }
+
+    const cliente = await prisma.cliente.findUnique({ where: { id } });
+    if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado' });
+
+    // Eliminar en orden de dependencias (FK)
+    await prisma.pago.deleteMany({ where: { clienteId: id } });
+    await prisma.consumo.deleteMany({ where: { clienteId: id } });
+    await prisma.contrato.deleteMany({ where: { clienteId: id } });
+    await prisma.cliente.delete({ where: { id } });
+
+    await addAudit('delete', `Cliente eliminado: ${cliente.razonSocial}`, req.user);
+    res.json({ ok: true, message: `Cliente ${cliente.razonSocial} eliminado` });
+  } catch (err) { next(err); }
+}
+
+module.exports = { list, getById, create, update, remove, estadoCuenta, estadoCuentaCsv };
