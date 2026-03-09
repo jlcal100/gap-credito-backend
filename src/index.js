@@ -79,6 +79,17 @@ app.get('/api/health', (req, res) => {
 // ==================== FRONTEND ESTATICO (sin auth) ====================
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+// ==================== SETUP TEMPORAL (BORRAR DESPUES) ====================
+app.get('/api/setup', (req, res) => {
+  res.json({ status: 'running', message: 'Aplicando BigInt + tipoCliente...' });
+  const { exec } = require('child_process');
+  exec('npx prisma db push --skip-generate 2>&1', (err, stdout) => {
+    console.log('DB PUSH:', stdout);
+    if (err) console.error('DB PUSH ERROR:', err);
+    else console.log('SETUP COMPLETE');
+  });
+});
+
 // ==================== RUTAS PUBLICAS (con rate limit extra en login) ====================
 app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth', require('./routes/auth.routes'));

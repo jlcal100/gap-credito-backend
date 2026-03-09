@@ -53,8 +53,8 @@ async function create(req, res, next) {
 
     // Verificar config de linea maxima
     const config = await prisma.config.findUnique({ where: { id: 'singleton' } });
-    if (config && lineaCredito > config.maxLineaCredito) {
-      return res.status(400).json({ error: `Linea de credito excede el maximo permitido: $${(config.maxLineaCredito / 100).toFixed(2)}` });
+    if (config && lineaCredito > Number(config.maxLineaCredito)) {
+      return res.status(400).json({ error: `Linea de credito excede el maximo permitido: $${(Number(config.maxLineaCredito) / 100).toFixed(2)}` });
     }
 
     // Generar numero de contrato

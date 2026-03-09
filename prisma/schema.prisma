@@ -256,7 +256,7 @@ model Config {
   tasaMoratoriaDefault  Float  @default(2.5)
   alertaCartera         Int    @default(80)
   alertaMoroso          Int    @default(5)
-  maxLineaCredito       Int    @default(50000000)  // centavos
+  maxLineaCredito       BigInt @default(50000000)  // centavos
 
   @@map("config")
 }
