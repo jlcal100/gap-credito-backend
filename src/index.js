@@ -28,30 +28,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ==================== SETUP TEMPORAL (BORRAR DESPUES) ====================
-app.get('/api/setup', async (req, res) => {
-  try {
-    const { exec } = require('child_process');
-    // Primero db push para aplicar nuevo enum SUPERADMIN
-    exec('npx prisma db push --skip-generate 2>&1', async (err, stdout) => {
-      console.log('DB PUSH:', stdout);
-      if (err) { console.error('DB PUSH ERROR:', err); return; }
-      // Luego actualizar admins existentes a SUPERADMIN
-      const { PrismaClient } = require('@prisma/client');
-      const p = new PrismaClient();
-      try {
-        const result = await p.usuario.updateMany({
-          where: { tipo: 'ADMIN', estacionId: null },
-          data: { tipo: 'SUPERADMIN' }
-        });
-        console.log('UPGRADE COMPLETE:', result.count, 'admins -> SUPERADMIN');
-      } catch(e) { console.error('UPGRADE ERROR:', e.message); }
-      finally { await p.$disconnect(); }
-    });
-    res.json({ status: 'running', message: 'Aplicando schema + upgrade admins...' });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
 // ==================== RUTAS PUBLICAS ====================
 app.use('/api/auth', require('./routes/auth.routes'));
 
