@@ -90,13 +90,14 @@ app.get('/api/setup', async (req, res) => {
   try {
     const { PrismaClient } = require('@prisma/client');
     const p = new PrismaClient();
-    const result = await p.usuario.updateMany({
-      where: { email: 'admin@gap.com.mx' },
-      data: { email: 'jlcal100@gmail.com' }
-    });
-    console.log('EMAIL UPDATE:', result.count, 'admin -> jlcal100@gmail.com');
+    // Borrar en orden por foreign keys
+    const pagos = await p.pago.deleteMany({});
+    const consumos = await p.consumo.deleteMany({});
+    const contratos = await p.contrato.deleteMany({});
+    const clientes = await p.cliente.deleteMany({});
+    console.log('CLEANUP:', { pagos: pagos.count, consumos: consumos.count, contratos: contratos.count, clientes: clientes.count });
     await p.$disconnect();
-    res.json({ status: 'ok', message: 'Admin email actualizado a jlcal100@gmail.com', updated: result.count });
+    res.json({ status: 'ok', deleted: { pagos: pagos.count, consumos: consumos.count, contratos: contratos.count, clientes: clientes.count } });
   } catch(e) {
     console.error('SETUP ERROR:', e.message);
     res.status(500).json({ error: e.message });
