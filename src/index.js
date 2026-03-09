@@ -87,6 +87,9 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// ==================== FRONTEND ESTATICO (sin auth) ====================
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
 // ==================== RUTAS PUBLICAS (con rate limit extra en login) ====================
 app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth', require('./routes/auth.routes'));
@@ -105,9 +108,6 @@ app.use('/api/pagos', writeLimiter, require('./routes/pagos.routes'));
 app.use('/api/usuarios', writeLimiter, require('./routes/usuarios.routes'));
 app.use('/api/config', writeLimiter, require('./routes/config.routes'));
 app.use('/api/audit', require('./routes/audit.routes'));
-
-// ==================== FRONTEND ESTATICO ====================
-app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // ==================== 404 ====================
 app.use((req, res) => {
