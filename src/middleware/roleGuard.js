@@ -3,7 +3,7 @@
  * Debe usarse DESPUES de authenticate
  */
 function adminOnly(req, res, next) {
-  if (req.user.tipo !== 'ADMIN') {
+  if (req.user.tipo !== 'ADMIN' && req.user.tipo !== 'SUPERADMIN') {
     return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de administrador.' });
   }
   next();

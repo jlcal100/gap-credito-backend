@@ -227,14 +227,14 @@ async function main() {
   await prisma.usuario.create({
     data: {
       nombre: 'Administrador', ap: 'General', email: 'admin@gap.com.mx',
-      passwordHash: adminHash, tipo: 'ADMIN', rfc: 'XAXX010101000',
+      passwordHash: adminHash, tipo: 'SUPERADMIN', rfc: 'XAXX010101000',
       tel: '3300000000', pin: '1234', activo: true,
     },
   });
   await prisma.usuario.create({
     data: {
       nombre: 'Director', ap: 'Operaciones', email: 'director@gap.com.mx',
-      passwordHash: adminHash, tipo: 'ADMIN', rfc: 'XAXX010101001',
+      passwordHash: adminHash, tipo: 'SUPERADMIN', rfc: 'XAXX010101001',
       tel: '3300000001', pin: '1234', activo: true,
     },
   });

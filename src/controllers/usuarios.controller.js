@@ -57,7 +57,7 @@ async function create(req, res, next) {
         email: email.toLowerCase().trim(),
         passwordHash,
         tipo: tipo || 'OPERADOR',
-        estacionId: tipo === 'ADMIN' ? null : estacionId,
+        estacionId: (tipo === 'ADMIN' || tipo === 'SUPERADMIN') ? null : estacionId,
         rfc: rfc || '',
         tel: tel || '',
         pin: pin || '',
@@ -86,7 +86,7 @@ async function update(req, res, next) {
     }
 
     if (data.email) data.email = data.email.toLowerCase().trim();
-    if (data.tipo === 'ADMIN') data.estacionId = null;
+    if (data.tipo === 'ADMIN' || data.tipo === 'SUPERADMIN') data.estacionId = null;
 
     const usuario = await prisma.usuario.update({ where: { id }, data });
     await addAudit('update', `Usuario actualizado: ${usuario.nombre} ${usuario.ap}`, req.user);

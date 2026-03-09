@@ -10,6 +10,7 @@ datasource db {
 // ==================== ENUMS ====================
 
 enum UserType {
+  SUPERADMIN
   ADMIN
   OPERADOR
 }
