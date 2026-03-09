@@ -51,12 +51,6 @@ async function create(req, res, next) {
     });
     if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado' });
 
-    // Verificar config de linea maxima
-    const config = await prisma.config.findUnique({ where: { id: 'singleton' } });
-    if (config && lineaCredito > Number(config.maxLineaCredito)) {
-      return res.status(400).json({ error: `Linea de credito excede el maximo permitido: $${(Number(config.maxLineaCredito) / 100).toFixed(2)}` });
-    }
-
     // Generar numero de contrato
     const count = await prisma.contrato.count() + 1;
     const year = new Date().getFullYear();
