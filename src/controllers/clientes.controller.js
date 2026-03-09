@@ -63,16 +63,24 @@ async function create(req, res, next) {
   try {
     const { razonSocial, estacionId } = req.body;
     if (!razonSocial) return res.status(400).json({ error: 'Razon social es requerida' });
-    // RFC generico si no se proporciona
-    if (!req.body.rfc) req.body.rfc = 'XAXX010101000';
 
     // Operadores solo pueden crear en su estacion
     const finalEstacionId = req.user.tipo === 'OPERADOR' ? req.user.estacionId : estacionId;
     if (!finalEstacionId) return res.status(400).json({ error: 'estacionId es requerido' });
 
-    const cliente = await prisma.cliente.create({
-      data: { ...req.body, estacionId: finalEstacionId },
-    });
+    // Solo campos validos del modelo Cliente
+    const validFields = ['razonSocial', 'rfc', 'domicilioFiscal', 'representanteLegal', 'telefono', 'email', 'tipoCliente', 'activo', 'notas'];
+    const data = {};
+    for (const field of validFields) {
+      if (req.body[field] !== undefined) data[field] = req.body[field];
+    }
+    // RFC generico si no se proporciona
+    if (!data.rfc) data.rfc = 'XAXX010101000';
+    // tipoCliente default
+    if (!data.tipoCliente) data.tipoCliente = 'cliente';
+    data.estacionId = finalEstacionId;
+
+    const cliente = await prisma.cliente.create({ data });
 
     await addAudit('create', `Cliente creado: ${razonSocial}`, req.user);
     res.status(201).json(cliente);
@@ -82,9 +90,15 @@ async function create(req, res, next) {
 async function update(req, res, next) {
   try {
     const { id } = req.params;
+    // Solo campos validos del modelo Cliente
+    const validFields = ['razonSocial', 'rfc', 'domicilioFiscal', 'representanteLegal', 'telefono', 'email', 'tipoCliente', 'activo', 'notas', 'estacionId'];
+    const data = {};
+    for (const field of validFields) {
+      if (req.body[field] !== undefined) data[field] = req.body[field];
+    }
     const cliente = await prisma.cliente.update({
       where: { id },
-      data: req.body,
+      data,
     });
     await addAudit('update', `Cliente actualizado: ${cliente.razonSocial}`, req.user);
     res.json(cliente);

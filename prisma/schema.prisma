@@ -124,6 +124,7 @@ model Cliente {
   representanteLegal String   @default("")
   telefono           String   @default("")
   email              String   @default("")
+  tipoCliente        String   @default("cliente")  // "cliente" o "transito"
   activo             Boolean  @default(true)
   notas              String   @default("")
   fechaRegistro      DateTime @default(now())

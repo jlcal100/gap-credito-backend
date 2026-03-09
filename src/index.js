@@ -81,7 +81,7 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // ==================== SETUP TEMPORAL (BORRAR DESPUES) ====================
 app.get('/api/setup', (req, res) => {
-  res.json({ status: 'running', message: 'Aplicando schema...' });
+  res.json({ status: 'running', message: 'Aplicando schema (tipoCliente)...' });
   const { exec } = require('child_process');
   exec('npx prisma db push --skip-generate 2>&1', (err, stdout) => {
     console.log('DB PUSH:', stdout);
