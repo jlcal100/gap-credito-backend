@@ -28,6 +28,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// ==================== SETUP TEMPORAL ====================
+app.get('/api/setup', (req, res) => {
+  res.json({ status: 'running', message: 'Ejecutando seed...' });
+  const { exec } = require('child_process');
+  exec('npx prisma db push --skip-generate 2>&1 && node prisma/seed.js 2>&1', (err, stdout, stderr) => {
+    console.log('SETUP OUTPUT:', stdout);
+    if (err) console.error('SETUP ERROR:', stderr);
+    else console.log('SETUP COMPLETE');
+  });
+});
+
 // ==================== RUTAS PUBLICAS ====================
 app.use('/api/auth', require('./routes/auth.routes'));
 

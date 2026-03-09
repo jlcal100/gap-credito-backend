@@ -3,20 +3,136 @@ const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 
-const BANCOS = ['BBVA', 'Banorte', 'Santander', 'HSBC', 'Scotiabank', 'Citibanamex', 'Banco Azteca', 'BanRegio', 'Inbursa', 'Afirme'];
-
-const EST_DATA = [
-  { e: 'Jalisco', c: ['Guadalajara', 'Zapopan', 'Puerto Vallarta'] },
-  { e: 'Nuevo Leon', c: ['Monterrey', 'San Pedro', 'Apodaca'] },
-  { e: 'Edo. Mexico', c: ['Toluca', 'Naucalpan', 'Ecatepec'] },
-  { e: 'CDMX', c: ['Cuauhtemoc', 'Miguel Hidalgo', 'Coyoacan'] },
-  { e: 'Guanajuato', c: ['Leon', 'Irapuato', 'Celaya'] },
-  { e: 'Queretaro', c: ['Queretaro', 'San Juan del Rio'] },
-  { e: 'Puebla', c: ['Puebla', 'Cholula'] },
-  { e: 'Aguascalientes', c: ['Aguascalientes'] },
-  { e: 'Michoacan', c: ['Morelia', 'Uruapan'] },
-  { e: 'Chihuahua', c: ['Chihuahua', 'Cd. Juarez'] },
+const REAL_STATIONS = [
+  { cuenta: '0209499429', nombre: 'ABEIRA', clabe: '072420002094994291' },
+  { cuenta: '0548154717', nombre: 'ALISAS', clabe: '072441005481547172' },
+  { cuenta: '0567480930', nombre: 'ALPES', clabe: '072441005674809300' },
+  { cuenta: '0551756755', nombre: 'ASUNCION', clabe: '072441005517567550' },
+  { cuenta: '0202541169', nombre: 'CAMTOS', clabe: '072420002025411691' },
+  { cuenta: '1019212011', nombre: 'CAP ALMOLOYA', clabe: '072420010192120111' },
+  { cuenta: '1088347021', nombre: 'CAP ATLACOMULCO', clabe: '072420010883470219' },
+  { cuenta: '1088046481', nombre: 'CAP AVANDARO', clabe: '072420010880464817' },
+  { cuenta: '1248285459', nombre: 'CAP IXTAPAN', clabe: '072420012482854593' },
+  { cuenta: '1088354298', nombre: 'CAP JOCOTITLAN', clabe: '072420010883542985' },
+  { cuenta: '1088341926', nombre: 'CAP SAN LUIS', clabe: '072420010883419267' },
+  { cuenta: '1088365445', nombre: 'CAP SAN MATEO', clabe: '072420010883654459' },
+  { cuenta: '1088358803', nombre: 'CAP SANTA CRUZ', clabe: '072420010883588033' },
+  { cuenta: '1088364121', nombre: 'CAP TENANGO', clabe: '072420010883641213' },
+  { cuenta: '1088366639', nombre: 'CAP TONATICO', clabe: '072420010883666395' },
+  { cuenta: '1088367944', nombre: 'CAP VALLE DE BRAVO', clabe: '072420010883679447' },
+  { cuenta: '1088368820', nombre: 'CAP VILLA DE ALLENDE', clabe: '072420010883688205' },
+  { cuenta: '1088370421', nombre: 'CAP ZITACUARO', clabe: '072420010883704215' },
+  { cuenta: '1088369667', nombre: 'CAP ZONA INDUSTRIAL', clabe: '072420010883696679' },
+  { cuenta: '0567480828', nombre: 'CARRETERO', clabe: '072441005674808288' },
+  { cuenta: '0871732626', nombre: 'CHALCO', clabe: '072420008717326263' },
+  { cuenta: '0206255240', nombre: 'COTERON', clabe: '072420002062552403' },
+  { cuenta: '0859436173', nombre: 'CUEXOCH', clabe: '072420008594361739' },
+  { cuenta: '0156466673', nombre: 'DASS', clabe: '072434001564666732' },
+  { cuenta: '0171521959', nombre: 'DUAL', clabe: '072441001715219594' },
+  { cuenta: '0278556944', nombre: 'DUERO', clabe: '072420002785569443' },
+  { cuenta: '0316258962', nombre: 'EJE 10', clabe: '072420003162589621' },
+  { cuenta: '0266466880', nombre: 'ENCINOS', clabe: '072420002664668805' },
+  { cuenta: '0672997220', nombre: 'ENERGIA', clabe: '072441006729972204' },
+  { cuenta: '0847322367', nombre: 'GERITON', clabe: '072420008473223671' },
+  { cuenta: '0831426040', nombre: 'HIDALGO', clabe: '072420008314260405' },
+  { cuenta: '0672997190', nombre: 'IXTAPALGAS', clabe: '072441006729971904' },
+  { cuenta: '0582208838', nombre: 'IXTLAHUACA', clabe: '072441005822088384' },
+  { cuenta: '0474683129', nombre: 'JANVAL', clabe: '072420004746831299' },
+  { cuenta: '0171521744', nombre: 'MARALVA', clabe: '072441001715217444' },
+  { cuenta: '1245299491', nombre: 'MARINAS', clabe: '072420012452994917' },
+  { cuenta: '0568031991', nombre: 'MONROY', clabe: '072420005680319915' },
+  { cuenta: '0280004995', nombre: 'NEVADO', clabe: '072441002800049953' },
+  { cuenta: '0530128272', nombre: 'NINFAS', clabe: '072441005301282724' },
+  { cuenta: '0187326155', nombre: 'ORDAZ', clabe: '072420001873261557' },
+  { cuenta: '0802777724', nombre: 'PAL', clabe: '072441008027777248' },
+  { cuenta: '1234654115', nombre: 'PATZCUARO', clabe: '072420012346541159' },
+  { cuenta: '0439835936', nombre: 'PLAZAS AP I', clabe: '072420004398359365' },
+  { cuenta: '0679206743', nombre: 'PLAZAS AP II', clabe: '072441006792067434' },
+  { cuenta: '0865726398', nombre: 'PONTEVEDRA', clabe: '072420008657263981' },
+  { cuenta: '0602162968', nombre: 'PORTILLO', clabe: '072441006021629682' },
+  { cuenta: '0835221234', nombre: 'SERMATO', clabe: '072441008352212342' },
+  { cuenta: '0182830657', nombre: 'TEC', clabe: '072441001828306572' },
+  { cuenta: '0104657128', nombre: 'TENANCINGO', clabe: '072450001046571280' },
+  { cuenta: '0887466221', nombre: 'TEZA', clabe: '072420008874662213' },
+  { cuenta: '0504038354', nombre: 'TOLCAYUCA', clabe: '072290005040383546' },
+  { cuenta: '0859436191', nombre: 'TOSCAM', clabe: '072420008594361917' },
+  { cuenta: '1146196624', nombre: 'TULYEHUALCO', clabe: '072420011461966241' },
+  { cuenta: '1269224640', nombre: 'VASA HERIBERTO', clabe: '072420012692246409' },
+  { cuenta: '1269288334', nombre: 'VASA METEPEC', clabe: '072420012692883341' },
+  { cuenta: '1269230520', nombre: 'VASA OCOTITLAN', clabe: '072420012692305201' },
+  { cuenta: '0148961771', nombre: 'VILLA', clabe: '072450001489617714' },
+  { cuenta: '0648419222', nombre: 'ZINA', clabe: '072441006484192222' },
 ];
+
+function getEstadoForStation(nombre) {
+  if (nombre.startsWith('CAP ')) return 'Edo. Mexico';
+  if (['EJE 10', 'TULYEHUALCO', 'CHALCO'].includes(nombre)) return 'CDMX';
+  return 'Mexico';
+}
+
+function getCiudadForStation(nombre) {
+  const mapping = {
+    'ABEIRA': 'Toluca',
+    'ALISAS': 'Toluca',
+    'ALPES': 'Toluca',
+    'ASUNCION': 'Toluca',
+    'CAMTOS': 'Toluca',
+    'CAP ALMOLOYA': 'Almoloya',
+    'CAP ATLACOMULCO': 'Atlacomulco',
+    'CAP AVANDARO': 'Avandaro',
+    'CAP IXTAPAN': 'Ixtapan',
+    'CAP JOCOTITLAN': 'Jocotitlan',
+    'CAP SAN LUIS': 'San Luis',
+    'CAP SAN MATEO': 'San Mateo',
+    'CAP SANTA CRUZ': 'Santa Cruz',
+    'CAP TENANGO': 'Tenango',
+    'CAP TONATICO': 'Tonatico',
+    'CAP VALLE DE BRAVO': 'Valle de Bravo',
+    'CAP VILLA DE ALLENDE': 'Villa de Allende',
+    'CAP ZITACUARO': 'Zitacuaro',
+    'CAP ZONA INDUSTRIAL': 'Zona Industrial',
+    'CARRETERO': 'Toluca',
+    'CHALCO': 'Chalco',
+    'COTERON': 'Toluca',
+    'CUEXOCH': 'Toluca',
+    'DASS': 'Toluca',
+    'DUAL': 'Toluca',
+    'DUERO': 'Toluca',
+    'EJE 10': 'Mexico City',
+    'ENCINOS': 'Toluca',
+    'ENERGIA': 'Toluca',
+    'GERITON': 'Toluca',
+    'HIDALGO': 'Toluca',
+    'IXTAPALGAS': 'Toluca',
+    'IXTLAHUACA': 'Ixtlahuaca',
+    'JANVAL': 'Toluca',
+    'MARALVA': 'Toluca',
+    'MARINAS': 'Marinas',
+    'MONROY': 'Toluca',
+    'NEVADO': 'Toluca',
+    'NINFAS': 'Toluca',
+    'ORDAZ': 'Toluca',
+    'PAL': 'Toluca',
+    'PATZCUARO': 'Patzcuaro',
+    'PLAZAS AP I': 'Toluca',
+    'PLAZAS AP II': 'Toluca',
+    'PONTEVEDRA': 'Toluca',
+    'PORTILLO': 'Toluca',
+    'SERMATO': 'Toluca',
+    'TEC': 'Toluca',
+    'TENANCINGO': 'Tenancingo',
+    'TEZA': 'Toluca',
+    'TOLCAYUCA': 'Tolcayuca',
+    'TOSCAM': 'Toluca',
+    'TULYEHUALCO': 'Tulyehualco',
+    'VASA HERIBERTO': 'Heriberto',
+    'VASA METEPEC': 'Metepec',
+    'VASA OCOTITLAN': 'Ocotitlan',
+    'VILLA': 'Villa',
+    'ZINA': 'Toluca',
+  };
+  return mapping[nombre] || nombre;
+}
 
 const EMPRESAS = [
   'Transportes del Norte', 'Autobuses Rojos', 'Fletes Modernos', 'Logistica Express',
@@ -74,29 +190,31 @@ async function main() {
   });
 
   // Estaciones
-  console.log('Creando 10 estaciones...');
+  console.log('Creando 59 estaciones...');
   const estaciones = [];
-  for (let i = 0; i < 10; i++) {
-    const ed = EST_DATA[i];
-    const ciudad = randEl(ed.c);
+  for (let i = 0; i < REAL_STATIONS.length; i++) {
+    const stationData = REAL_STATIONS[i];
     const num = 'EST-' + String(i + 1).padStart(4, '0');
+    const estado = getEstadoForStation(stationData.nombre);
+    const ciudad = getCiudadForStation(stationData.nombre);
+
     const est = await prisma.estacion.create({
       data: {
-        nombre: `Estacion ${ciudad}`,
+        nombre: stationData.nombre,
         num,
         ciudad,
-        estado: ed.e,
-        razonSocial: `GAP Estacion ${ciudad} SA de CV`,
-        rfc: `GAP${900 + i}101ABC`,
+        estado,
+        razonSocial: `Estacion ${stationData.nombre} SA de CV`,
+        rfc: `EST${String(i + 1).padStart(5, '0')}ABC`,
         domicilio: `Av. Principal #${rand(1000, 9999)}, Col. Centro`,
         cp: String(rand(10000, 99999)),
-        banco: BANCOS[i % BANCOS.length],
-        cuenta: String(rand(1000000000, 9999999999)),
-        clabe: '0' + String(rand(10000000000000000, 99999999999999999)),
-        beneficiario: `GAP Estacion ${ciudad}`,
-        contactoNombre: CONTACTOS[i],
-        contactoTel: `33${rand(10000000, 99999999)}`,
-        contactoEmail: `estacion.${ciudad.toLowerCase().replace(/ /g, '')}@gap.com.mx`,
+        banco: 'Banorte',
+        cuenta: stationData.cuenta,
+        clabe: stationData.clabe,
+        beneficiario: stationData.nombre,
+        contactoNombre: CONTACTOS[i % CONTACTOS.length],
+        contactoTel: `${rand(5500000000, 5599999999)}`,
+        contactoEmail: `${stationData.nombre.toLowerCase().replace(/ /g, '')}@banorte.com.mx`,
         activa: true,
       },
     });
@@ -137,12 +255,12 @@ async function main() {
     operadores.push(op);
   }
 
-  // Clientes, Contratos, Consumos, Pagos
-  console.log('Creando clientes, contratos, consumos y pagos...');
+  // Clientes, Contratos, Consumos, Pagos (solo para las primeras 10 estaciones)
+  console.log('Creando clientes, contratos, consumos y pagos para las primeras 10 estaciones...');
   const hoy = new Date();
   let empIdx = 0;
 
-  for (let ei = 0; ei < estaciones.length; ei++) {
+  for (let ei = 0; ei < 10; ei++) {
     const est = estaciones[ei];
     const nCli = rand(5, 8);
 
@@ -157,7 +275,7 @@ async function main() {
           rfc: `${emp.substring(0, 3).toUpperCase()}${800 + empIdx}ABC`,
           domicilioFiscal: `Calle ${rand(1, 200)}, ${est.ciudad}, ${est.estado}`,
           representanteLegal: `${['Lic. ', 'Ing. ', 'C.P. '][j % 3]}${['Roberto', 'Patricia', 'Enrique', 'Monica', 'Alejandro'][j % 5]} ${['Vega', 'Soto', 'Rios', 'Luna', 'Campos'][j % 5]}`,
-          telefono: `33${rand(10000000, 99999999)}`,
+          telefono: `${rand(5500000000, 5599999999)}`,
           email: `${emp.substring(0, 5).toLowerCase().replace(/ /g, '')}@correo.com`,
           activo: true,
           fechaRegistro: new Date(hoy.getTime() - Math.random() * 180 * 86400000),
@@ -254,12 +372,12 @@ async function main() {
   ]);
 
   console.log('\n=== Seed completado ===');
-  console.log(`  Estaciones: ${stats[0]}`);
-  console.log(`  Usuarios:   ${stats[1]}`);
-  console.log(`  Clientes:   ${stats[2]}`);
-  console.log(`  Contratos:  ${stats[3]}`);
-  console.log(`  Consumos:   ${stats[4]}`);
-  console.log(`  Pagos:      ${stats[5]}`);
+  console.log(`  Estaciones: ${stats[0]} (59 estaciones Banorte)`);
+  console.log(`  Usuarios:   ${stats[1]} (2 admin + 10 operadores)`);
+  console.log(`  Clientes:   ${stats[2]} (primeras 10 estaciones)`);
+  console.log(`  Contratos:  ${stats[3]} (primeras 10 estaciones)`);
+  console.log(`  Consumos:   ${stats[4]} (primeras 10 estaciones)`);
+  console.log(`  Pagos:      ${stats[5]} (primeras 10 estaciones)`);
   console.log('\nCredenciales de prueba:');
   console.log('  Admin:    admin@gap.com.mx / Admin123!');
   console.log('  Operador: luis.gonzalez@gap.com.mx / Oper1234!\n');
