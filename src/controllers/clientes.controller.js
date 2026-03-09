@@ -61,9 +61,10 @@ async function getById(req, res, next) {
 
 async function create(req, res, next) {
   try {
-    const { razonSocial, rfc, estacionId } = req.body;
+    const { razonSocial, estacionId } = req.body;
     if (!razonSocial) return res.status(400).json({ error: 'Razon social es requerida' });
-    if (!rfc) return res.status(400).json({ error: 'RFC es requerido' });
+    // RFC generico si no se proporciona
+    if (!req.body.rfc) req.body.rfc = 'XAXX010101000';
 
     // Operadores solo pueden crear en su estacion
     const finalEstacionId = req.user.tipo === 'OPERADOR' ? req.user.estacionId : estacionId;

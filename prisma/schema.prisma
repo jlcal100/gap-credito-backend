@@ -31,6 +31,7 @@ enum PagoStatus {
 }
 
 enum FianzaTipo {
+  NINGUNA
   BANCARIA
   EFECTIVO
   ASEGURADORA
