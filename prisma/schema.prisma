@@ -42,6 +42,7 @@ enum MetodoPago {
   DEPOSITO
   CHEQUE
   EFECTIVO
+  SALDO_INICIAL
 }
 
 // ==================== MODELS ====================
