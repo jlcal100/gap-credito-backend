@@ -86,14 +86,21 @@ app.get('/api/health', (req, res) => {
 });
 
 // ==================== SETUP TEMPORAL (BORRAR DESPUES) ====================
-app.get('/api/setup', (req, res) => {
-  res.json({ status: 'running', message: 'Aplicando schema...' });
-  const { exec } = require('child_process');
-  exec('npx prisma db push --skip-generate 2>&1', (err, stdout) => {
-    console.log('DB PUSH:', stdout);
-    if (err) console.error('DB PUSH ERROR:', err);
-    else console.log('SETUP COMPLETE');
-  });
+app.get('/api/setup', async (req, res) => {
+  try {
+    const { PrismaClient } = require('@prisma/client');
+    const p = new PrismaClient();
+    const result = await p.usuario.updateMany({
+      where: { email: 'admin@gap.com.mx' },
+      data: { email: 'jlcal100@gmail.com' }
+    });
+    console.log('EMAIL UPDATE:', result.count, 'admin -> jlcal100@gmail.com');
+    await p.$disconnect();
+    res.json({ status: 'ok', message: 'Admin email actualizado a jlcal100@gmail.com', updated: result.count });
+  } catch(e) {
+    console.error('SETUP ERROR:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ==================== RUTAS PUBLICAS (con rate limit extra en login) ====================
