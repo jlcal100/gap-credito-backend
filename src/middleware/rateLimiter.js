@@ -5,7 +5,7 @@ const rateLimit = require('express-rate-limit');
  */
 const globalLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minuto
-  max: 100,
+  max: 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Demasiadas solicitudes. Intente de nuevo en un minuto.' },
@@ -30,7 +30,7 @@ const loginLimiter = rateLimit({
  */
 const writeLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 30,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Demasiadas operaciones de escritura. Intente de nuevo en un minuto.' },

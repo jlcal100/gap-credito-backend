@@ -64,16 +64,19 @@ async function create(req, res, next) {
 
     const estacionId = req.user.tipo === 'OPERADOR' ? req.user.estacionId : cliente.estacionId;
 
-    const contrato = await prisma.contrato.create({
-      data: {
-        ...req.body,
-        numero,
-        estacionId,
-        fechaInicio: new Date(fechaInicio),
-        fechaVencimiento: new Date(fechaVencimiento),
-        status: new Date(fechaVencimiento) < new Date() ? 'VENCIDO' : 'VIGENTE',
-      },
-    });
+    // Solo campos validos del modelo Contrato
+    const validFields = ['clienteId', 'lineaCredito', 'fianzaMonto', 'fianzaTipo', 'condicionesPago', 'tasaMoratoria', 'docContrato', 'docPagare', 'docFianza'];
+    const data = {};
+    for (const field of validFields) {
+      if (req.body[field] !== undefined) data[field] = req.body[field];
+    }
+    data.numero = numero;
+    data.estacionId = estacionId;
+    data.fechaInicio = new Date(fechaInicio);
+    data.fechaVencimiento = new Date(fechaVencimiento);
+    data.status = new Date(fechaVencimiento) < new Date() ? 'VENCIDO' : 'VIGENTE';
+
+    const contrato = await prisma.contrato.create({ data });
 
     await addAudit('create', `Contrato creado: ${numero} para ${cliente.razonSocial}`, req.user);
     res.status(201).json(contrato);
